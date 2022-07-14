@@ -23,12 +23,6 @@ impl<R> Buffer<R> {
             curr_idx: 0,
         }
     }
-
-    pub fn render_line_count(&self, width: usize) -> usize {
-        self.lines
-            .iter()
-            .fold(0, |acc, line| acc + line_width_divisions(line, width))
-    }
 }
 
 pub fn line_width_divisions(line: &str, width: usize) -> usize {

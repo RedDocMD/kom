@@ -1,5 +1,8 @@
 use std::io::{Read, Write};
 
+use log::debug;
+use termion::cursor;
+
 use crate::buffer::{self, Buffer};
 
 pub struct Context<R> {
@@ -20,13 +23,19 @@ impl<R> Context<R> {
     }
 
     pub fn lines(&self) -> impl Iterator<Item = &str> {
-        self.buffer.lines(self.width).take(self.height - 1)
+        self.buffer
+            .lines(self.width)
+            .skip(self.offset)
+            .take(self.height - 1)
     }
 
     pub fn write_screen<W: Write>(&self, mut writer: W) -> anyhow::Result<()> {
+        debug!("Refreshing screen");
+        write!(writer, "{}", cursor::Goto(1, 1))?;
         for line in self.lines() {
             write!(writer, "{}\n\r", line)?;
         }
+        write!(writer, "{}:", cursor::Goto(self.height as u16, 1))?;
         Ok(())
     }
 }
