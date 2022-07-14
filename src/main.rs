@@ -3,7 +3,7 @@ use std::{
     process,
 };
 
-use termion::raw::IntoRawMode;
+use termion::{raw::IntoRawMode, screen::AlternateScreen};
 
 use self::buffer::Buffer;
 
@@ -28,6 +28,13 @@ impl<R> Context<R> {
 
     pub fn lines(&self) -> impl Iterator<Item = &str> {
         self.buffer.lines(self.width).take(self.height - 1)
+    }
+
+    pub fn write_screen<W: Write>(&self, mut writer: W) -> anyhow::Result<()> {
+        for line in self.lines() {
+            write!(writer, "{}\n\r", line)?;
+        }
+        Ok(())
     }
 }
 
@@ -55,13 +62,15 @@ fn main() -> anyhow::Result<()> {
     }
 
     let (width, height) = termion::terminal_size()?;
-    let mut context = Context::new(width, height, stdin());
 
-    let mut raw_stdout = stdout().into_raw_mode()?;
+    let screen = AlternateScreen::from(stdout());
+    let mut raw_screen = screen.into_raw_mode()?;
+
+    let mut context = Context::new(width, height, stdin());
     context.fill_buffer()?;
-    for line in context.lines() {
-        write!(raw_stdout, "{}\n\r", line)?;
-    }
+    context.write_screen(&mut raw_screen)?;
+
+    std::thread::sleep(std::time::Duration::from_secs(2));
 
     Ok(())
 }
