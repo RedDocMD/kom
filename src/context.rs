@@ -1,7 +1,6 @@
 use std::io::{Read, Write};
 
 use log::debug;
-use termion::cursor;
 
 use crate::buffer::{self, Buffer};
 
@@ -14,6 +13,7 @@ pub struct Context<R> {
 
 impl<R> Context<R> {
     pub fn new(width: u16, height: u16, reader: R) -> Self {
+        debug!("Width: {}, Height: {}", width, height);
         Self {
             buffer: Buffer::new(reader),
             width: width as usize,
@@ -31,11 +31,12 @@ impl<R> Context<R> {
 
     pub fn write_screen<W: Write>(&self, mut writer: W) -> anyhow::Result<()> {
         debug!("Refreshing screen");
-        write!(writer, "{}", cursor::Goto(1, 1))?;
+        write!(writer, "{}", termion::clear::All)?;
         for line in self.lines() {
             write!(writer, "{}\n\r", line)?;
         }
-        write!(writer, "{}:", cursor::Goto(self.height as u16, 1))?;
+        write!(writer, ":")?;
+        writer.flush()?;
         Ok(())
     }
 }

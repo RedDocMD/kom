@@ -28,7 +28,7 @@ impl<R> Buffer<R> {
 pub fn line_width_divisions(line: &str, width: usize) -> usize {
     let len = line.len();
     if len % width == 0 {
-        len / width
+        usize::max(len / width, 1)
     } else {
         len / width + 1
     }
