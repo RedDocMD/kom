@@ -9,7 +9,7 @@ use std::{
 use log::LevelFilter;
 use rand::Rng;
 use simplelog::WriteLogger;
-use termion::{raw::IntoRawMode, screen::AlternateScreen};
+use termion::{event::Key, get_tty, input::TermRead, raw::IntoRawMode, screen::AlternateScreen};
 
 use self::context::Context;
 
@@ -41,7 +41,13 @@ fn main() -> anyhow::Result<()> {
 
     context.write_screen(&mut raw_screen)?;
 
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    let tty = get_tty()?;
+    for key in tty.keys() {
+        let key = key?;
+        if let Key::Char('q') = key {
+            break;
+        }
+    }
 
     Ok(())
 }
