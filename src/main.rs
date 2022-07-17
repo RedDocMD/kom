@@ -36,16 +36,27 @@ fn main() -> anyhow::Result<()> {
     let screen = AlternateScreen::from(stdout());
     let mut raw_screen = screen.into_raw_mode()?;
 
-    let mut context = Context::new(width, height, stdin());
-    context.fill_buffer()?;
+    let mut ctx = Context::new(width, height, stdin());
+    ctx.fill_buffer()?;
 
-    context.write_screen(&mut raw_screen)?;
+    ctx.write_screen(&mut raw_screen)?;
 
     let tty = get_tty()?;
     for key in tty.keys() {
         let key = key?;
-        if let Key::Char('q') = key {
-            break;
+        match key {
+            Key::Char('q') => break,
+            Key::Char('j') => {
+                if ctx.scroll_down()? {
+                    ctx.write_screen(&mut raw_screen)?;
+                }
+            }
+            Key::Char('k') => {
+                if ctx.sroll_up()? {
+                    ctx.write_screen(&mut raw_screen)?;
+                }
+            }
+            _ => {}
         }
     }
 

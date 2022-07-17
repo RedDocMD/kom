@@ -56,4 +56,23 @@ where
         }
         Ok(())
     }
+
+    pub fn scroll_down(&mut self) -> anyhow::Result<bool> {
+        let old_offset = self.offset;
+        self.offset += 1;
+        if self.buffer.len() - self.offset < self.height - 1 {
+            let line = self.buffer.append_line()?;
+            if line.is_none() {
+                // TODO: Display an END marker
+                self.offset -= 1;
+            }
+        }
+        Ok(old_offset != self.offset)
+    }
+
+    pub fn sroll_up(&mut self) -> anyhow::Result<bool> {
+        let old_offset = self.offset;
+        self.offset = self.offset.saturating_sub(1);
+        Ok(old_offset != self.offset)
+    }
 }

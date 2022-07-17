@@ -14,6 +14,10 @@ impl<R> Buffer<R> {
             curr_idx: 0,
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.lines.len()
+    }
 }
 
 pub fn line_width_divisions(line: &str, width: usize) -> usize {
