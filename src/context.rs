@@ -12,16 +12,6 @@ pub struct Context<R> {
 }
 
 impl<R> Context<R> {
-    pub fn new(width: u16, height: u16, reader: R) -> Self {
-        debug!("Width: {}, Height: {}", width, height);
-        Self {
-            buffer: Buffer::new(reader),
-            width: width as usize,
-            height: height as usize,
-            offset: 0,
-        }
-    }
-
     pub fn lines(&self) -> impl Iterator<Item = &str> {
         self.buffer
             .lines(self.width)
@@ -45,6 +35,16 @@ impl<R> Context<R>
 where
     R: Read,
 {
+    pub fn new(width: u16, height: u16, reader: R) -> Self {
+        debug!("Width: {}, Height: {}", width, height);
+        Self {
+            buffer: Buffer::new(reader),
+            width: width as usize,
+            height: height as usize,
+            offset: 0,
+        }
+    }
+
     pub fn fill_buffer(&mut self) -> anyhow::Result<()> {
         let mut cnt = 0;
         while cnt < self.height - 1 {

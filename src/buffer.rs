@@ -1,20 +1,11 @@
-use std::io::Read;
-
-use termion::input::TermRead;
+use std::io::{BufRead, BufReader, Read};
 
 pub struct Buffer<R> {
     lines: Vec<String>,
-    reader: R,
+    reader: BufReader<R>,
 }
 
 impl<R> Buffer<R> {
-    pub fn new(reader: R) -> Self {
-        Self {
-            lines: Vec::new(),
-            reader,
-        }
-    }
-
     pub fn lines(&self, width: usize) -> Lines<'_> {
         Lines {
             lines: &self.lines,
@@ -38,9 +29,19 @@ impl<R> Buffer<R>
 where
     R: Read,
 {
+    pub fn new(reader: R) -> Self {
+        let reader = BufReader::new(reader);
+        Self {
+            lines: Vec::new(),
+            reader,
+        }
+    }
+
     pub fn append_line(&mut self) -> anyhow::Result<Option<&str>> {
-        let line = self.reader.read_line()?;
-        if let Some(line) = line {
+        let mut line = String::new();
+        self.reader.read_line(&mut line)?;
+        if !line.is_empty() {
+            line.pop();
             self.lines.push(line);
             Ok(self.lines.last().map(String::as_str))
         } else {
