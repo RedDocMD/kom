@@ -21,9 +21,9 @@ impl<R> Context<R> {
 
     pub fn write_screen<W: Write>(&self, mut writer: W) -> anyhow::Result<()> {
         debug!("Refreshing screen");
-        write!(writer, "{}", termion::clear::All)?;
+        write!(writer, "{}", termion::cursor::Goto(1, 1))?;
         for line in self.lines() {
-            write!(writer, "{}\n\r", line)?;
+            write!(writer, "{}{}\n\r", termion::clear::CurrentLine, line)?;
         }
         write!(writer, ":")?;
         writer.flush()?;
