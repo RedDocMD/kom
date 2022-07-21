@@ -2,11 +2,14 @@
 name = "kom"
 version = "0.1.0"
 edition = "2021"
+authors = ["Deep Majumder <deep.majumder2019@gmail.com>"]
+description = "Kom is a pager, similar to less"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.58"
+clap = { version = "3.2.14", features = ["derive"] }
 log = "0.4.17"
 rand = "0.8.5"
 simplelog = "0.12.0"

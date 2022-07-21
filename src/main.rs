@@ -1,11 +1,12 @@
 use std::{
     env,
     fs::File,
-    io::{self, stdin, stdout},
+    io::{self, stdin, stdout, Read},
     path::PathBuf,
     process,
 };
 
+use clap::Parser;
 use log::LevelFilter;
 use rand::Rng;
 use simplelog::WriteLogger;
@@ -22,6 +23,13 @@ mod context;
 #[macro_use]
 extern crate log;
 
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Cli {
+    #[clap(value_parser)]
+    filename: Option<PathBuf>,
+}
+
 fn main() -> anyhow::Result<()> {
     let log_file = LogFile::new()?;
     let level = parse_level(&env::var("KOM_LOG_LEVEL").unwrap_or_else(|_| "info".into()));
@@ -34,12 +42,21 @@ fn main() -> anyhow::Result<()> {
         process::exit(1);
     }
 
+    let cli = Cli::parse();
+
     let (width, height) = termion::terminal_size()?;
 
     let screen = AlternateScreen::from(stdout());
     let mut raw_screen = screen.into_raw_mode()?;
 
-    let mut ctx = Context::new(width, height, stdin());
+    let input = if let Some(filename) = cli.filename {
+        let file = File::open(filename)?;
+        Box::new(file) as Box<dyn Read>
+    } else {
+        Box::new(stdin()) as Box<dyn Read>
+    };
+
+    let mut ctx = Context::new(width, height, input);
     ctx.fill_buffer()?;
 
     ctx.write_screen(&mut raw_screen)?;
