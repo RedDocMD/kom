@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{Read, Write};
 
-use termion::event::{Event, Key};
+use termion::event::{Event, Key, MouseButton, MouseEvent};
 use termion::input::TermRead;
 
 use crate::context::Context;
@@ -29,7 +29,7 @@ where
                         break;
                     }
                 }
-                Event::Mouse(_) => {}
+                Event::Mouse(ev) => self.handle_mouse_event(ev)?,
                 Event::Unsupported(ev) => info!("Unsupported event: {:?}", ev),
             }
         }
@@ -52,5 +52,25 @@ where
             _ => {}
         }
         Ok(false)
+    }
+
+    fn handle_mouse_event(&mut self, mouse_ev: MouseEvent) -> anyhow::Result<()> {
+        debug!("Mouse event: {:?}", mouse_ev);
+        if let MouseEvent::Press(btn, _, _) = mouse_ev {
+            match btn {
+                MouseButton::WheelUp => {
+                    if self.ctx.sroll_up()? {
+                        self.ctx.write_screen(&mut self.screen)?;
+                    }
+                }
+                MouseButton::WheelDown => {
+                    if self.ctx.scroll_down()? {
+                        self.ctx.write_screen(&mut self.screen)?;
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
     }
 }
