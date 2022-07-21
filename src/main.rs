@@ -9,11 +9,14 @@ use std::{
 use log::LevelFilter;
 use rand::Rng;
 use simplelog::WriteLogger;
-use termion::{event::Key, get_tty, input::TermRead, raw::IntoRawMode, screen::AlternateScreen};
+use termion::{get_tty, raw::IntoRawMode, screen::AlternateScreen};
+
+use crate::command::CommandDispatcher;
 
 use self::context::Context;
 
 mod buffer;
+mod command;
 mod context;
 
 #[macro_use]
@@ -42,23 +45,8 @@ fn main() -> anyhow::Result<()> {
     ctx.write_screen(&mut raw_screen)?;
 
     let tty = get_tty()?;
-    for key in tty.keys() {
-        let key = key?;
-        match key {
-            Key::Char('q') => break,
-            Key::Char('j') => {
-                if ctx.scroll_down()? {
-                    ctx.write_screen(&mut raw_screen)?;
-                }
-            }
-            Key::Char('k') => {
-                if ctx.sroll_up()? {
-                    ctx.write_screen(&mut raw_screen)?;
-                }
-            }
-            _ => {}
-        }
-    }
+    let mut cmd_dispatcher = CommandDispatcher::new(&mut ctx, raw_screen);
+    cmd_dispatcher.handle_events(tty)?;
 
     Ok(())
 }
