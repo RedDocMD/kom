@@ -57,22 +57,39 @@ where
         Ok(())
     }
 
-    pub fn scroll_down(&mut self) -> anyhow::Result<bool> {
+    pub fn scroll_down(&mut self, lines: usize) -> anyhow::Result<bool> {
         let old_offset = self.offset;
-        self.offset += 1;
-        if self.buffer.len() - self.offset < self.height - 1 {
+        self.offset += lines;
+        while self.buffer.len() - self.offset < self.height - 1 {
             let line = self.buffer.append_line()?;
             if line.is_none() {
                 // TODO: Display an END marker
-                self.offset -= 1;
+                self.offset = self.buffer.len() - self.height + 1;
+                break;
             }
         }
         Ok(old_offset != self.offset)
     }
 
-    pub fn sroll_up(&mut self) -> anyhow::Result<bool> {
+    pub fn scroll_up(&mut self, lines: usize) -> anyhow::Result<bool> {
         let old_offset = self.offset;
-        self.offset = self.offset.saturating_sub(1);
+        self.offset = self.offset.saturating_sub(lines);
         Ok(old_offset != self.offset)
+    }
+
+    pub fn scroll_down_line(&mut self) -> anyhow::Result<bool> {
+        self.scroll_down(1)
+    }
+
+    pub fn scroll_up_line(&mut self) -> anyhow::Result<bool> {
+        self.scroll_up(1)
+    }
+
+    pub fn scroll_down_screen(&mut self) -> anyhow::Result<bool> {
+        self.scroll_down(self.height - 1)
+    }
+
+    pub fn scroll_up_screen(&mut self) -> anyhow::Result<bool> {
+        self.scroll_up(self.height - 1)
     }
 }

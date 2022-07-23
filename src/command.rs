@@ -40,12 +40,17 @@ where
         match key {
             Key::Char('q') => return Ok(true),
             Key::Char('j') => {
-                if self.ctx.scroll_down()? {
+                if self.ctx.scroll_down_line()? {
                     self.ctx.write_screen(&mut self.screen)?;
                 }
             }
             Key::Char('k') => {
-                if self.ctx.sroll_up()? {
+                if self.ctx.scroll_up_line()? {
+                    self.ctx.write_screen(&mut self.screen)?;
+                }
+            }
+            Key::Char(' ') | Key::Ctrl('v') | Key::Char('f') | Key::Ctrl('f') => {
+                if self.ctx.scroll_down_screen()? {
                     self.ctx.write_screen(&mut self.screen)?;
                 }
             }
@@ -59,12 +64,12 @@ where
         if let MouseEvent::Press(btn, _, _) = mouse_ev {
             match btn {
                 MouseButton::WheelUp => {
-                    if self.ctx.sroll_up()? {
+                    if self.ctx.scroll_up_line()? {
                         self.ctx.write_screen(&mut self.screen)?;
                     }
                 }
                 MouseButton::WheelDown => {
-                    if self.ctx.scroll_down()? {
+                    if self.ctx.scroll_down_line()? {
                         self.ctx.write_screen(&mut self.screen)?;
                     }
                 }
