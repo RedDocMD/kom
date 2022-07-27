@@ -49,8 +49,13 @@ where
                     self.ctx.write_screen(&mut self.screen)?;
                 }
             }
-            Key::Char(' ') | Key::Ctrl('v') | Key::Char('f') | Key::Ctrl('f') => {
+            Key::Char(' ') | Key::Ctrl('v') | Key::Char('f') | Key::Ctrl('f') | Key::PageDown => {
                 if self.ctx.scroll_down_screen()? {
+                    self.ctx.write_screen(&mut self.screen)?;
+                }
+            }
+            Key::PageUp => {
+                if self.ctx.scroll_up_screen()? {
                     self.ctx.write_screen(&mut self.screen)?;
                 }
             }

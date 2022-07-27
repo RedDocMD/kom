@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use log::debug;
+use termion::color;
 
 use crate::buffer::{self, Buffer};
 
@@ -9,6 +9,15 @@ pub struct Context<R> {
     width: usize,
     height: usize,
     offset: usize,
+    cmd_line_kind: CommandLineKind,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum CommandLineKind {
+    Filename(String),
+    Normal,
+    End,
+    Search,
 }
 
 impl<R> Context<R> {
@@ -25,7 +34,28 @@ impl<R> Context<R> {
         for line in self.lines() {
             write!(writer, "{}{}\n\r", termion::clear::CurrentLine, line)?;
         }
-        write!(writer, ":")?;
+        write!(writer, "{}", termion::clear::CurrentLine)?;
+        match &self.cmd_line_kind {
+            CommandLineKind::Filename(name) => write!(
+                writer,
+                "{}{}{}{}{}",
+                color::Fg(color::Black),
+                color::Bg(color::LightWhite),
+                name,
+                color::Fg(color::Reset),
+                color::Bg(color::Reset),
+            )?,
+            CommandLineKind::Normal => write!(writer, ":")?,
+            CommandLineKind::End => write!(
+                writer,
+                "{}{}(END){}{}",
+                color::Fg(color::Black),
+                color::Bg(color::LightWhite),
+                color::Fg(color::Reset),
+                color::Bg(color::Reset),
+            )?,
+            CommandLineKind::Search => write!(writer, "/")?,
+        }
         writer.flush()?;
         Ok(())
     }
@@ -35,13 +65,16 @@ impl<R> Context<R>
 where
     R: Read,
 {
-    pub fn new(width: u16, height: u16, reader: R) -> Self {
+    pub fn new(width: u16, height: u16, reader: R, filename: Option<String>) -> Self {
         debug!("Width: {}, Height: {}", width, height);
         Self {
             buffer: Buffer::new(reader),
             width: width as usize,
             height: height as usize,
             offset: 0,
+            cmd_line_kind: filename.map_or(CommandLineKind::Normal, |name| {
+                CommandLineKind::Filename(name)
+            }),
         }
     }
 
@@ -59,22 +92,27 @@ where
 
     pub fn scroll_down(&mut self, lines: usize) -> anyhow::Result<bool> {
         let old_offset = self.offset;
+        let old_kind = self.cmd_line_kind.clone();
         self.offset += lines;
+        self.cmd_line_kind = CommandLineKind::Normal;
         while self.buffer.len() - self.offset < self.height - 1 {
             let line = self.buffer.append_line()?;
             if line.is_none() {
-                // TODO: Display an END marker
                 self.offset = self.buffer.len() - self.height + 1;
+                self.cmd_line_kind = CommandLineKind::End;
+                debug!("Hit end");
                 break;
             }
         }
-        Ok(old_offset != self.offset)
+        Ok(old_offset != self.offset || old_kind != self.cmd_line_kind)
     }
 
     pub fn scroll_up(&mut self, lines: usize) -> anyhow::Result<bool> {
         let old_offset = self.offset;
+        let old_kind = self.cmd_line_kind.clone();
         self.offset = self.offset.saturating_sub(lines);
-        Ok(old_offset != self.offset)
+        self.cmd_line_kind = CommandLineKind::Normal;
+        Ok(old_offset != self.offset || old_kind != self.cmd_line_kind)
     }
 
     pub fn scroll_down_line(&mut self) -> anyhow::Result<bool> {

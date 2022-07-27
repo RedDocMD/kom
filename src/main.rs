@@ -49,14 +49,16 @@ fn main() -> anyhow::Result<()> {
     let screen = AlternateScreen::from(stdout());
     let mut raw_screen = screen.into_raw_mode()?;
 
-    let input = if let Some(filename) = cli.filename {
+    let input = if let Some(filename) = &cli.filename {
         let file = File::open(filename)?;
         Box::new(file) as Box<dyn Read>
     } else {
         Box::new(stdin()) as Box<dyn Read>
     };
 
-    let mut ctx = Context::new(width, height, input);
+    let filename = cli.filename.map(|name| name.display().to_string());
+
+    let mut ctx = Context::new(width, height, input, filename);
     ctx.fill_buffer()?;
 
     ctx.write_screen(&mut raw_screen)?;
