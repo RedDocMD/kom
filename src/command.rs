@@ -76,20 +76,19 @@ where
     }
 
     fn handle_search_key_event(&mut self, key: Key) -> anyhow::Result<bool> {
+        let mut change = true;
         match key {
-            Key::Char(c) => {
-                self.ctx.search_push_char(c);
-                self.ctx.write_screen(&mut self.screen)?;
-            }
-            Key::Esc => {
-                self.ctx.switch_to_normal_mode();
-                self.ctx.write_screen(&mut self.screen)?;
-            }
-            Key::Backspace => {
-                self.ctx.search_pop_char();
-                self.ctx.write_screen(&mut self.screen)?;
-            }
-            _ => {}
+            Key::Char('\n') => {}
+            Key::Char(c) => self.ctx.search_push_char(c),
+            Key::Esc => self.ctx.switch_to_normal_mode(),
+            Key::Backspace => self.ctx.search_erase_char(),
+            Key::Delete => self.ctx.search_delete_char(),
+            Key::Left => self.ctx.search_cursor_left(),
+            Key::Right => self.ctx.search_cursor_right(),
+            _ => change = false,
+        }
+        if change {
+            self.ctx.write_screen(&mut self.screen)?;
         }
         Ok(false)
     }

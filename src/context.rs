@@ -17,7 +17,7 @@ enum CommandLineKind {
     Filename(String),
     Normal,
     End,
-    Search(String),
+    Search(SearchLineData),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -37,13 +37,58 @@ impl From<&CommandLineKind> for CommandLineKindExt {
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
+struct SearchLineData {
+    search: String,
+    pos: usize,
+}
+
+impl SearchLineData {
+    fn new() -> Self {
+        Self {
+            search: String::new(),
+            pos: 0,
+        }
+    }
+
+    fn insert_char(&mut self, ch: char) {
+        self.search.insert(self.pos, ch);
+        self.pos += 1;
+    }
+
+    // Has semantics of backspace
+    fn erase_char(&mut self) {
+        if self.pos > 0 {
+            self.search.remove(self.pos - 1);
+            self.pos -= 1;
+        }
+    }
+
+    // Has semantics of delete
+    fn delete_char(&mut self) {
+        if self.pos < self.search.len() {
+            self.search.remove(self.pos);
+        }
+    }
+
+    fn cursor_left(&mut self) {
+        self.pos = self.pos.saturating_sub(1);
+    }
+
+    fn cursor_right(&mut self) {
+        if self.pos < self.search.len() {
+            self.pos += 1;
+        }
+    }
+}
+
 impl<R> Context<R> {
     pub fn cmd_line_kind(&self) -> CommandLineKindExt {
         (&self.cmd_line_kind).into()
     }
 
     pub fn switch_to_search_mode(&mut self) {
-        self.cmd_line_kind = CommandLineKind::Search(String::new());
+        self.cmd_line_kind = CommandLineKind::Search(SearchLineData::new());
     }
 
     pub fn switch_to_normal_mode(&mut self) {
@@ -51,16 +96,42 @@ impl<R> Context<R> {
     }
 
     pub fn search_push_char(&mut self, ch: char) {
-        if let CommandLineKind::Search(s) = &mut self.cmd_line_kind {
-            s.push(ch);
+        if let CommandLineKind::Search(sld) = &mut self.cmd_line_kind {
+            sld.insert_char(ch);
         } else {
             unreachable!("Expected to be in search mode");
         }
     }
 
-    pub fn search_pop_char(&mut self) {
-        if let CommandLineKind::Search(s) = &mut self.cmd_line_kind {
-            s.pop();
+    // For backspace
+    pub fn search_erase_char(&mut self) {
+        if let CommandLineKind::Search(sld) = &mut self.cmd_line_kind {
+            sld.erase_char();
+        } else {
+            unreachable!("Expected to be in search mode");
+        }
+    }
+
+    // For delete
+    pub fn search_delete_char(&mut self) {
+        if let CommandLineKind::Search(sld) = &mut self.cmd_line_kind {
+            sld.delete_char();
+        } else {
+            unreachable!("Expected to be in search mode");
+        }
+    }
+
+    pub fn search_cursor_left(&mut self) {
+        if let CommandLineKind::Search(sld) = &mut self.cmd_line_kind {
+            sld.cursor_left();
+        } else {
+            unreachable!("Expected to be in search mode");
+        }
+    }
+
+    pub fn search_cursor_right(&mut self) {
+        if let CommandLineKind::Search(sld) = &mut self.cmd_line_kind {
+            sld.cursor_right();
         } else {
             unreachable!("Expected to be in search mode");
         }
@@ -99,7 +170,14 @@ impl<R> Context<R> {
                 color::Fg(color::Reset),
                 color::Bg(color::Reset),
             )?,
-            CommandLineKind::Search(s) => write!(writer, "/{}", s)?,
+            CommandLineKind::Search(sld) => {
+                write!(writer, "/{}", sld.search)?;
+                write!(
+                    writer,
+                    "{}",
+                    termion::cursor::Goto((sld.pos + 2) as u16, self.height as u16)
+                )?;
+            }
         }
         writer.flush()?;
         Ok(())
