@@ -13,14 +13,59 @@ pub struct Context<R> {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum CommandLineKind {
+enum CommandLineKind {
     Filename(String),
     Normal,
     End,
+    Search(String),
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum CommandLineKindExt {
+    Normal,
     Search,
 }
 
+impl From<&CommandLineKind> for CommandLineKindExt {
+    fn from(kind: &CommandLineKind) -> Self {
+        match kind {
+            CommandLineKind::Filename(_) | CommandLineKind::Normal | CommandLineKind::End => {
+                CommandLineKindExt::Normal
+            }
+            CommandLineKind::Search(_) => CommandLineKindExt::Search,
+        }
+    }
+}
+
 impl<R> Context<R> {
+    pub fn cmd_line_kind(&self) -> CommandLineKindExt {
+        (&self.cmd_line_kind).into()
+    }
+
+    pub fn switch_to_search_mode(&mut self) {
+        self.cmd_line_kind = CommandLineKind::Search(String::new());
+    }
+
+    pub fn switch_to_normal_mode(&mut self) {
+        self.cmd_line_kind = CommandLineKind::Normal;
+    }
+
+    pub fn search_push_char(&mut self, ch: char) {
+        if let CommandLineKind::Search(s) = &mut self.cmd_line_kind {
+            s.push(ch);
+        } else {
+            unreachable!("Expected to be in search mode");
+        }
+    }
+
+    pub fn search_pop_char(&mut self) {
+        if let CommandLineKind::Search(s) = &mut self.cmd_line_kind {
+            s.pop();
+        } else {
+            unreachable!("Expected to be in search mode");
+        }
+    }
+
     pub fn lines(&self) -> impl Iterator<Item = &str> {
         self.buffer
             .lines(self.width)
@@ -54,7 +99,7 @@ impl<R> Context<R> {
                 color::Fg(color::Reset),
                 color::Bg(color::Reset),
             )?,
-            CommandLineKind::Search => write!(writer, "/")?,
+            CommandLineKind::Search(s) => write!(writer, "/{}", s)?,
         }
         writer.flush()?;
         Ok(())

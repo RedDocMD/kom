@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use termion::event::{Event, Key, MouseButton, MouseEvent};
 use termion::input::TermRead;
 
-use crate::context::Context;
+use crate::context::{CommandLineKindExt, Context};
 
 pub struct CommandDispatcher<'a, R, W> {
     ctx: &'a mut Context<R>,
@@ -37,6 +37,13 @@ where
     }
 
     fn handle_key_event(&mut self, key: Key) -> anyhow::Result<bool> {
+        match self.ctx.cmd_line_kind() {
+            CommandLineKindExt::Normal => self.handle_normal_key_event(key),
+            CommandLineKindExt::Search => self.handle_search_key_event(key),
+        }
+    }
+
+    fn handle_normal_key_event(&mut self, key: Key) -> anyhow::Result<bool> {
         match key {
             Key::Char('q') => return Ok(true),
             Key::Char('j') => {
@@ -58,6 +65,29 @@ where
                 if self.ctx.scroll_up_screen()? {
                     self.ctx.write_screen(&mut self.screen)?;
                 }
+            }
+            Key::Char('/') => {
+                self.ctx.switch_to_search_mode();
+                self.ctx.write_screen(&mut self.screen)?;
+            }
+            _ => {}
+        }
+        Ok(false)
+    }
+
+    fn handle_search_key_event(&mut self, key: Key) -> anyhow::Result<bool> {
+        match key {
+            Key::Char(c) => {
+                self.ctx.search_push_char(c);
+                self.ctx.write_screen(&mut self.screen)?;
+            }
+            Key::Esc => {
+                self.ctx.switch_to_normal_mode();
+                self.ctx.write_screen(&mut self.screen)?;
+            }
+            Key::Backspace => {
+                self.ctx.search_pop_char();
+                self.ctx.write_screen(&mut self.screen)?;
             }
             _ => {}
         }
